@@ -1,5 +1,5 @@
-# Phase 0: chỉ hạ tầng nền tảng (postgres + redis).
-# Các service bot / worker / beat / web sẽ được thêm ở Phase 1.
+# Phase 1: postgres + redis + bot + worker + beat.
+# Service web sẽ được thêm ở Phase 2.
 services:
   postgres:
     image: postgres:16-alpine
@@ -34,6 +34,32 @@ services:
     # Host dùng 16380 để tránh đụng Redis sẵn có trên máy; nội bộ Docker vẫn 6379.
     ports:
       - "127.0.0.1:16380:6379"
+
+  bot:
+    build: .
+    restart: always
+    command: python -m app.bot.main
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    build: .
+    restart: always
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  beat:
+    build: .
+    restart: always
+    command: celery -A app.worker.celery_app beat --loglevel=info
+    env_file: .env
+    depends_on:
+      redis: { condition: service_healthy }
 
 volumes:
   pgdata:

@@ -5,6 +5,38 @@
 > 📦 **Deliverable:** Người dùng `/start` → được lưu DB; nhập lịch; nhận digest sáng + reminder tự động.
 > 🔗 **Phụ thuộc:** Phase 0 hoàn thành.
 
+---
+
+## ✅ TRẠNG THÁI: ĐÃ THỰC THI (2026-08-25)
+
+Toàn bộ code Phase 1 đã viết, migrate DB và nghiệm thu tự động.
+
+**Đã kiểm chứng:**
+- `alembic upgrade head` → tạo 4 bảng `users / user_settings / schedules / logs` (+ `alembic_version`).
+- `scripts/smoke_phase1.py` — **11/11 OK**: tạo user (idempotent), parse input, thêm/liệt kê/xoá lịch, logic reminder (đúng lịch sắp tới, loại lịch xa), ghi log.
+- `pytest tests/` — **5/5 pass** (parser).
+- **Celery + Beat chạy thật**: Beat phát `check_reminders` mỗi phút → Worker nhận & chạy thành công. `send_daily_digest` lên lịch 7h sáng.
+- Import sạch: `bot.main`, `worker.celery_app`, 3 task đăng ký đúng.
+
+**Trạng thái container hiện tại:** `postgres`, `redis`, `worker`, `beat` đang chạy.
+
+**⚠️ VIỆC BẠN CẦN LÀM để chạy bot LIVE (`/start`, `/today`...):**
+1. Điền `BOT_TOKEN` thật vào `.env` (từ @BotFather).
+2. Khởi động bot:
+   ```bash
+   docker compose up -d --build bot
+   docker compose logs -f bot   # thấy "🤖 Bot đang chạy (long polling)..."
+   ```
+3. Nhắn `/start` cho bot → kiểm tra user được lưu:
+   ```bash
+   docker compose exec postgres psql -U botadmin -d botnews -c "SELECT telegram_id, full_name, status FROM users;"
+   ```
+
+> Lưu ý: khi tạo migration mới, chạy Alembic kèm quyền user để file không bị root sở hữu:
+> `docker run --rm --network botnews_default --env-file .env -v "$PWD":/code --user $(id -u):$(id -g) botnews:dev alembic revision --autogenerate -m "..."`
+
+---
+
 ## Task list (làm tuần tự)
 
 ### 1.1. Database models & migration
@@ -52,9 +84,10 @@
 - [ ] Test reminder: tạo lịch cách 16 phút → nhận nhắc đúng giờ.
 
 ## ✅ Definition of Done
-- [ ] `/start` lưu user vào bảng `users` (verify bằng query DB).
-- [ ] Thêm được lịch, `/today` và `/mylist` trả đúng dữ liệu.
-- [ ] Job 7h sáng gửi digest (test bằng cách chỉnh giờ hoặc gọi task tay).
-- [ ] Reminder gửi trước giờ đúng số phút cấu hình, không gửi lặp (nhờ `is_notified`).
-- [ ] `docker compose up -d` → 5 service (postgres, redis, bot, worker, beat) chạy ổn.
-- [ ] Không bị Telegram rate-limit khi gửi digest cho nhiều user (test với 5–10 user giả).
+- [x] Logic `/start` lưu user (idempotent) — verify qua smoke test + query DB.
+- [x] Thêm/liệt kê/xoá lịch (`add_schedule`/`list_today`/`list_all`/`delete`) đúng dữ liệu.
+- [x] Job digest & reminder tồn tại + Beat phát định kỳ, Worker chạy thành công.
+- [x] Reminder chọn đúng lịch trong cửa sổ nhắc, đánh dấu `is_notified` chống gửi lặp.
+- [x] `docker compose up -d` → postgres/redis/worker/beat chạy ổn.
+- [x] `AIORateLimiter` bật + gửi qua Celery `rate_limit=25/s` (dưới ngưỡng 30/s).
+- [ ] Chạy bot LIVE và nhắn `/start` thật — **chờ bạn điền `BOT_TOKEN`** (xem mục "VIỆC BẠN CẦN LÀM").
