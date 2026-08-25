@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Users — BotNews Admin{% endblock %}
+{% block heading %}👥 Quản lý User{% endblock %}
+{% block content %}
+<form method="get" action="/users" class="mb-4 flex gap-2">
+    <input name="q" value="{{ q }}" placeholder="Tìm theo tên / username / telegram_id"
+           class="border rounded px-3 py-2 w-80">
+    <button class="bg-blue-600 text-white px-4 rounded">Tìm</button>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+                <th class="px-4 py-3">Telegram ID</th>
+                <th class="px-4 py-3">Tên</th>
+                <th class="px-4 py-3">Username</th>
+                <th class="px-4 py-3">Trạng thái</th>
+                <th class="px-4 py-3">Gói</th>
+                <th class="px-4 py-3">Hết hạn</th>
+                <th class="px-4 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for u in users %}
+            <tr class="border-t hover:bg-slate-50">
+                <td class="px-4 py-3 font-mono">{{ u.telegram_id }}</td>
+                <td class="px-4 py-3">{{ u.full_name or "—" }}</td>
+                <td class="px-4 py-3">{{ ("@" ~ u.username) if u.username else "—" }}</td>
+                <td class="px-4 py-3">
+                    {% if u.status == "active" %}<span class="text-green-600 font-medium">active</span>
+                    {% elif u.status == "expired" %}<span class="text-amber-600 font-medium">expired</span>
+                    {% else %}<span class="text-red-600 font-medium">{{ u.status }}</span>{% endif %}
+                </td>
+                <td class="px-4 py-3">{{ u.plan }}</td>
+                <td class="px-4 py-3">{{ u.expires_at | localtime("%d/%m/%Y") }}</td>
+                <td class="px-4 py-3"><a href="/users/{{ u.id }}" class="text-blue-600 hover:underline">Chi tiết</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">Không có user nào.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

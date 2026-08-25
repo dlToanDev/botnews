@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Logs — BotNews Admin{% endblock %}
+{% block heading %}📜 Logs hoạt động{% endblock %}
+{% block content %}
+<form method="get" action="/logs" class="mb-4 flex gap-2">
+    <input name="action" value="{{ action }}" placeholder="Lọc theo action (vd: plan_extend)"
+           class="border rounded px-3 py-2 w-80">
+    <button class="bg-blue-600 text-white px-4 rounded">Lọc</button>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+                <th class="px-4 py-3">Thời gian</th>
+                <th class="px-4 py-3">Actor</th>
+                <th class="px-4 py-3">Action</th>
+                <th class="px-4 py-3">User</th>
+                <th class="px-4 py-3">Chi tiết</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for l in logs %}
+            <tr class="border-t">
+                <td class="px-4 py-2 whitespace-nowrap">{{ l.created_at | localtime }}</td>
+                <td class="px-4 py-2">{{ l.actor }}</td>
+                <td class="px-4 py-2 font-mono">{{ l.action }}</td>
+                <td class="px-4 py-2">{{ l.user_id or "—" }}</td>
+                <td class="px-4 py-2 font-mono text-xs text-slate-500">{{ l.detail }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400">Chưa có log.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

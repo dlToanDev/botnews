@@ -1,0 +1,47 @@
+"""Data access cho SubscriptionModule."""
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.timeutils import now_utc
+from app.models.subscription import SubscriptionModule
+
+
+async def list_for_user(session: AsyncSession, user_id: int) -> list[SubscriptionModule]:
+    res = await session.execute(
+        select(SubscriptionModule).where(SubscriptionModule.user_id == user_id)
+    )
+    return list(res.scalars().all())
+
+
+async def get(session: AsyncSession, user_id: int, module_key: str) -> SubscriptionModule | None:
+    res = await session.execute(
+        select(SubscriptionModule).where(
+            SubscriptionModule.user_id == user_id,
+            SubscriptionModule.module_key == module_key,
+        )
+    )
+    return res.scalar_one_or_none()
+
+
+async def upsert(
+    session: AsyncSession, user_id: int, module_key: str, is_enabled: bool
+) -> SubscriptionModule:
+    row = await get(session, user_id, module_key)
+    if row is None:
+        row = SubscriptionModule(user_id=user_id, module_key=module_key)
+        session.add(row)
+    row.is_enabled = is_enabled
+    row.enabled_at = now_utc() if is_enabled else None
+    await session.flush()
+    return row
+
+
+async def count_enabled_by_module(session: AsyncSession) -> dict[str, int]:
+    from sqlalchemy import func
+
+    res = await session.execute(
+        select(SubscriptionModule.module_key, func.count())
+        .where(SubscriptionModule.is_enabled.is_(True))
+        .group_by(SubscriptionModule.module_key)
+    )
+    return {key: cnt for key, cnt in res.all()}

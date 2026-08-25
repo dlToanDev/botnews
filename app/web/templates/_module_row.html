@@ -1,0 +1,11 @@
+<div id="module-{{ mod.key }}" class="flex items-center justify-between border rounded-lg px-4 py-3">
+    <span class="text-sm">{{ mod.label }}</span>
+    <button
+        hx-post="/users/{{ user_id }}/modules/{{ mod.key }}/toggle"
+        hx-target="#module-{{ mod.key }}"
+        hx-swap="outerHTML"
+        class="px-3 py-1 rounded text-sm font-medium
+               {% if mod.enabled %}bg-green-100 text-green-700{% else %}bg-slate-200 text-slate-600{% endif %}">
+        {% if mod.enabled %}✅ Đang bật{% else %}⭕ Đang tắt{% endif %}
+    </button>
+</div>

@@ -12,6 +12,7 @@ celery_app = Celery(
         "app.worker.tasks.send_message",
         "app.worker.tasks.daily_digest",
         "app.worker.tasks.schedule_reminder",
+        "app.worker.tasks.expire_users",
     ],
 )
 
@@ -32,5 +33,9 @@ celery_app.conf.beat_schedule = {
     "schedule-reminder-every-minute": {
         "task": "app.worker.tasks.schedule_reminder.check_reminders",
         "schedule": crontab(minute="*"),
+    },
+    "expire-users-daily": {
+        "task": "app.worker.tasks.expire_users.expire_overdue",
+        "schedule": crontab(hour=0, minute=5),
     },
 }

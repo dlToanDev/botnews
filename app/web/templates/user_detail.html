@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}User {{ user.telegram_id }} — BotNews Admin{% endblock %}
+{% block heading %}👤 {{ user.full_name or user.telegram_id }}{% endblock %}
+{% block content %}
+<a href="/users" class="text-blue-600 text-sm hover:underline">← Về danh sách</a>
+
+<div class="grid grid-cols-2 gap-6 mt-4">
+    <!-- Thông tin & trạng thái -->
+    <div class="bg-white rounded-xl shadow p-5 space-y-4">
+        <h2 class="font-semibold">Thông tin</h2>
+        <div class="text-sm space-y-1">
+            <div>🆔 Telegram ID: <span class="font-mono">{{ user.telegram_id }}</span></div>
+            <div>👤 Username: {{ ("@" ~ user.username) if user.username else "—" }}</div>
+            <div>📦 Gói: <b>{{ user.plan }}</b></div>
+            <div>⏳ Hết hạn: <b>{{ user.expires_at | localtime("%H:%M %d/%m/%Y") }}</b></div>
+            <div>🔖 Trạng thái hiện tại:
+                {% if user.status == "active" %}<span class="text-green-600 font-medium">active</span>
+                {% elif user.status == "expired" %}<span class="text-amber-600 font-medium">expired</span>
+                {% else %}<span class="text-red-600 font-medium">{{ user.status }}</span>{% endif %}
+            </div>
+        </div>
+
+        <form method="post" action="/users/{{ user.id }}/status" class="flex gap-2 items-center pt-2 border-t">
+            <label class="text-sm">Đổi trạng thái:</label>
+            <select name="status" class="border rounded px-2 py-1 text-sm">
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if s == user.status %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+            <button class="bg-slate-700 text-white text-sm px-3 py-1 rounded">Lưu</button>
+        </form>
+
+        <div class="flex gap-2 pt-2 border-t">
+            <form method="post" action="/users/{{ user.id }}/extend">
+                <input type="hidden" name="days" value="30">
+                <button class="bg-blue-600 text-white text-sm px-3 py-1 rounded">+30 ngày</button>
+            </form>
+            <form method="post" action="/users/{{ user.id }}/extend">
+                <input type="hidden" name="days" value="365">
+                <button class="bg-indigo-600 text-white text-sm px-3 py-1 rounded">+365 ngày</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feature toggle -->
+    <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <h2 class="font-semibold">🔌 Phân quyền module (bấm để bật/tắt)</h2>
+        {% for mod in modules %}
+            {% include "_module_row.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

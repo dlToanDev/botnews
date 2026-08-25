@@ -8,8 +8,10 @@ from functools import wraps
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from app.core.constants import MODULE_LABELS
 from app.core.database import AsyncSessionLocal
 from app.repositories import log_repo
+from app.services.subscription_service import has_module
 from app.services.user_service import get_or_create_user, is_active
 
 
@@ -47,3 +49,40 @@ def require_active(handler):
         return await handler(update, context, *args, **kwargs)
 
     return wrapper
+
+
+def require_module(module_key: str):
+    """Chỉ cho phép nếu user active/còn hạn VÀ Admin đã bật module này."""
+
+    def decorator(handler):
+        @wraps(handler)
+        async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+            tg = update.effective_user
+            message = update.effective_message
+            user, _created = await get_or_create_user(tg.id, tg.username, tg.full_name)
+
+            if user.status == "banned":
+                await message.reply_text("⛔ Tài khoản của bạn đã bị khoá.")
+                return
+            if not is_active(user):
+                await message.reply_text(
+                    "⌛ Tài khoản đã hết hạn. Vui lòng liên hệ Admin để gia hạn."
+                )
+                return
+            if not await has_module(user.id, module_key):
+                label = MODULE_LABELS.get(module_key, module_key)
+                await message.reply_text(
+                    f"🔒 Tính năng *{label}* chưa được kích hoạt cho gói của bạn.\n"
+                    "Liên hệ Admin để nâng cấp.",
+                    parse_mode="Markdown",
+                )
+                return
+
+            context.user_data["db_user_id"] = user.id
+            if message and message.text:
+                await _log_command(user.id, message.text.split()[0])
+            return await handler(update, context, *args, **kwargs)
+
+        return wrapper
+
+    return decorator

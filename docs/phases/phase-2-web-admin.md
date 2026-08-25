@@ -6,6 +6,32 @@
 > 🔗 **Phụ thuộc:** Phase 1 hoàn thành.
 > 🖥️ **Frontend:** Jinja2 + HTMX + Tailwind (đã chốt).
 
+---
+
+## ✅ TRẠNG THÁI: ĐÃ THỰC THI (2026-08-25)
+
+Web Admin đã chạy thật và test end-to-end bằng `curl` (web **không cần** BOT_TOKEN).
+
+**Đã kiểm chứng:**
+- Migration thêm bảng `subscription_modules`, `admins` → tổng **7 bảng**.
+- `init_admin.py` tạo admin OK.
+- **Auth**: `/` chưa login → 303 về `/login`; sai mật khẩu → 401; đúng → 303 + set-cookie (JWT HttpOnly); trang trong bị chặn nếu chưa login.
+- **Dashboard**: hiển thị tổng/active/expired/banned + thống kê module.
+- **Quản lý User**: list + search; trang chi tiết.
+- **Feature Toggle** (HTMX): bấm bật module `crypto` → partial trả "Đang bật"; DB `is_enabled=t`, có `enabled_at`.
+- **Gia hạn**: `+30 ngày` → `expires_at` +30, status→active (verify DB).
+- **Đổi status**: → `banned` (verify DB).
+- **Logs**: hiện `module_toggle`, `plan_extend`, `status_change`.
+- **Bot gating**: `has_module(crypto)=True / gold=False`; `@require_module` + 4 stub handlers (`/crypto /gold /football /news`).
+- **Auto-expire**: task `expire_overdue` chuyển user quá hạn → `expired` (test OK). Beat lịch `expire-users-daily` (00:05).
+- `pytest`: **8/8 pass** (parser + security).
+
+**Truy cập web (local):** http://127.0.0.1:8000 — tài khoản admin đã tạo (mật khẩu bạn đặt qua `ADMIN_PASSWORD`).
+
+**⚠️ Lưu ý:** Container `bot` vẫn cần `BOT_TOKEN` thật để chạy live (Web/Worker/Beat đã chạy đầy đủ).
+
+---
+
 ## Task list (làm tuần tự)
 
 ### 2.1. Models & migration cho SaaS
@@ -56,9 +82,9 @@
 - [ ] Beat task định kỳ (mỗi ngày): quét user quá `expires_at` → set `status='expired'`.
 
 ## ✅ Definition of Done
-- [ ] Đăng nhập admin thành công; route bị chặn nếu chưa login.
-- [ ] Dashboard hiển thị số liệu đúng.
-- [ ] Bật/tắt module cho 1 user → lưu DB, phản ánh ngay (HTMX).
-- [ ] Nhấn `+30`/`+365` → `expires_at` cập nhật đúng, log ghi lại.
-- [ ] Trong bot: user **không có module** gọi lệnh tính năng → bị từ chối; user hết hạn → bị chặn.
-- [ ] Job tự động chuyển user quá hạn sang `expired`.
+- [x] Đăng nhập admin thành công; route bị chặn nếu chưa login (303→/login).
+- [x] Dashboard hiển thị số liệu đúng.
+- [x] Bật/tắt module cho 1 user → lưu DB, phản ánh ngay (HTMX partial).
+- [x] Nhấn `+30`/`+365` → `expires_at` cập nhật đúng, log `plan_extend`.
+- [x] Bot: `@require_module` chặn user không có module / hết hạn (logic verify OK; chạy live cần token).
+- [x] Job `expire_overdue` chuyển user quá hạn sang `expired` + Beat lịch hằng ngày.

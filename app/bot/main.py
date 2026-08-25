@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 
-from app.bot.handlers import schedule, start
+from app.bot.handlers import features, schedule, start
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 
@@ -34,6 +34,12 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("today", schedule.today))
     app.add_handler(CommandHandler("mylist", schedule.mylist))
     app.add_handler(CommandHandler("delete", schedule.delete))
+
+    # Module SaaS (gated bằng @require_module)
+    app.add_handler(CommandHandler("crypto", features.crypto))
+    app.add_handler(CommandHandler("gold", features.gold))
+    app.add_handler(CommandHandler("football", features.football))
+    app.add_handler(CommandHandler("news", features.news))
 
     # Nút menu (Reply Keyboard)
     app.add_handler(
