@@ -5,6 +5,35 @@
 > 📦 **Deliverable:** `docker compose up -d postgres redis` chạy OK; project import được `app.core.config`.
 > 🔗 **Phụ thuộc:** Không.
 
+---
+
+## ✅ TRẠNG THÁI: ĐÃ THỰC THI (2026-08-25)
+
+Toàn bộ khung đã dựng và nghiệm thu tự động qua `scripts/check_setup.py`:
+
+```
+[OK ] Config load. BOT_TOKEN prefix = ...
+[OK ] Redis PING thành công.
+[OK ] PostgreSQL SELECT 1 thành công.
+=> KẾT QUẢ: TẤT CẢ OK ✅
+```
+
+**Lưu ý cấu hình thực tế trên máy này:**
+- Máy đã có Postgres/Redis chiếm cổng 5432/6379 → host-port đổi thành **15432** (Postgres) và **16380** (Redis). Cổng nội bộ Docker vẫn 5432/6379 nên bot/worker/web không ảnh hưởng.
+- `Dockerfile` đặt `PYTHONPATH=/code` để import `app.*` chạy đúng.
+
+**⚠️ VIỆC BẠN CẦN LÀM (còn lại duy nhất):**
+1. Tạo bot qua **@BotFather**, copy token.
+2. Mở `.env`, thay `BOT_TOKEN=PUT_YOUR_BOTFATHER_TOKEN_HERE` bằng token thật.
+3. Chạy lại kiểm tra token:
+   ```bash
+   NET=$(docker network ls --filter name=botnews_default --format '{{.Name}}')
+   docker run --rm --network "$NET" --env-file .env botnews:dev python scripts/check_setup.py
+   ```
+   → phải thấy dòng `[OK ] Bot token hợp lệ: @<tên_bot>`.
+
+---
+
 ## Task list (làm tuần tự)
 
 ### 0.1. Khởi tạo repo & cấu trúc thư mục
@@ -34,8 +63,9 @@
 - [ ] Viết script test nhỏ gửi 1 message tới chính mình để xác nhận token OK.
 
 ## ✅ Definition of Done
-- [ ] `docker compose ps` → postgres & redis đều `healthy`.
-- [ ] `python -c "from app.core.config import settings; print(settings.BOT_TOKEN[:5])"` chạy không lỗi.
-- [ ] Kết nối được PostgreSQL bằng `psql` hoặc DBeaver.
-- [ ] Bot token xác nhận hợp lệ (gửi thử 1 message thành công).
-- [ ] Cấu trúc thư mục khớp mục 3 roadmap.
+- [x] `docker compose ps` → postgres & redis đều `healthy`.
+- [x] Import `app.core.config` chạy không lỗi (qua `check_setup.py`).
+- [x] Kết nối được PostgreSQL (`psql SELECT version()` + app `SELECT 1`).
+- [x] Kết nối được Redis (`PING`).
+- [ ] Bot token xác nhận hợp lệ — **chờ bạn điền token từ @BotFather** (xem mục "VIỆC BẠN CẦN LÀM" ở trên).
+- [x] Cấu trúc thư mục khớp mục 3 roadmap.

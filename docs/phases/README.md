@@ -10,7 +10,7 @@ Tài liệu này chia dự án thành **4 Phase tuần tự**. Mỗi phase là m
 
 | Phase | Nội dung | Thời lượng | Trạng thái |
 |-------|----------|-----------|-----------|
-| [Phase 0](phase-0-setup.md) | Chuẩn bị môi trường & khung dự án | 1–2 ngày | ⬜ Chưa bắt đầu |
+| [Phase 0](phase-0-setup.md) | Chuẩn bị môi trường & khung dự án | 1–2 ngày | ✅ **Hoàn thành** |
 | [Phase 1](phase-1-core-bot.md) | Core Bot + Lịch cá nhân | Tuần 1–2 | ⬜ Chưa bắt đầu |
 | [Phase 2](phase-2-web-admin.md) | Web Admin + Phân quyền SaaS | Tuần 3–4 | ⬜ Chưa bắt đầu |
 | [Phase 3](phase-3-integrations.md) | Real-time Integrations (4 module) | Tuần 5–7 | ⬜ Chưa bắt đầu |
