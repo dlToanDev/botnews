@@ -1,0 +1,40 @@
+# Phase 0: chỉ hạ tầng nền tảng (postgres + redis).
+# Các service bot / worker / beat / web sẽ được thêm ở Phase 1.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Chỉ bind localhost — KHÔNG lộ port ra internet.
+    # Host dùng 15432 để tránh đụng Postgres sẵn có trên máy; nội bộ Docker vẫn 5432.
+    ports:
+      - "127.0.0.1:15432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Host dùng 16380 để tránh đụng Redis sẵn có trên máy; nội bộ Docker vẫn 6379.
+    ports:
+      - "127.0.0.1:16380:6379"
+
+volumes:
+  pgdata:
+  redisdata:

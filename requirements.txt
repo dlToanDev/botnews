@@ -1,0 +1,27 @@
+# --- Telegram Bot ---
+python-telegram-bot[rate-limiter]==21.9
+
+# --- Web / API ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+jinja2==3.1.5
+python-multipart==0.0.20
+
+# --- Database ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# --- Cache / Queue ---
+redis==5.2.1
+celery==5.4.0
+
+# --- Config / Security ---
+pydantic-settings==2.7.1
+bcrypt==4.2.1
+pyjwt==2.10.1
+
+# --- Integrations (Phase 3) ---
+httpx==0.28.1
+beautifulsoup4==4.12.3
+feedparser==6.0.11
