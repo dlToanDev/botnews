@@ -13,6 +13,10 @@ celery_app = Celery(
         "app.worker.tasks.daily_digest",
         "app.worker.tasks.schedule_reminder",
         "app.worker.tasks.expire_users",
+        "app.worker.tasks.crypto_alert",
+        "app.worker.tasks.gold_alert",
+        "app.worker.tasks.football_live",
+        "app.worker.tasks.news_push",
     ],
 )
 
@@ -37,5 +41,21 @@ celery_app.conf.beat_schedule = {
     "expire-users-daily": {
         "task": "app.worker.tasks.expire_users.expire_overdue",
         "schedule": crontab(hour=0, minute=5),
+    },
+    "crypto-poll-2min": {
+        "task": "app.worker.tasks.crypto_alert.poll_and_alert",
+        "schedule": crontab(minute="*/2"),
+    },
+    "gold-poll-10min": {
+        "task": "app.worker.tasks.gold_alert.poll_and_alert",
+        "schedule": crontab(minute="*/10"),
+    },
+    "football-live-2min": {
+        "task": "app.worker.tasks.football_live.poll_and_alert",
+        "schedule": crontab(minute="*/2"),
+    },
+    "news-push-15min": {
+        "task": "app.worker.tasks.news_push.poll_and_alert",
+        "schedule": crontab(minute="*/15"),
     },
 }

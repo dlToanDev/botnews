@@ -14,8 +14,12 @@ HELP_TEXT = (
     "• `/today` — lịch hôm nay\n"
     "• `/mylist` — tất cả lịch\n"
     "• `/delete <id>` — xoá lịch\n\n"
-    "⏰ Bot tự gửi *tổng hợp lịch lúc 7h sáng* và *nhắc trước giờ*.\n"
-    "🔓 Các module Vàng / Crypto / Bóng đá / Tin tức do Admin kích hoạt theo gói."
+    "⏰ Bot tự gửi *tổng hợp lịch lúc 7h sáng* và *nhắc trước giờ*.\n\n"
+    "*Module nâng cấp* (Admin kích hoạt theo gói):\n"
+    "• `/crypto BTCUSDT` — giá + %24h · `/setcrypto BTCUSDT 5` — cảnh báo ≥5%\n"
+    "• `/gold` — giá vàng SJC/PNJ\n"
+    "• `/football` — lịch/kết quả · `/setteam Arsenal` — theo dõi đội\n"
+    "• `/news` — tin nóng · `/setnews bitcoin,fed` — lọc theo từ khoá"
 )
 
 

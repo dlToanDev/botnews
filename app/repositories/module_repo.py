@@ -36,6 +36,27 @@ async def upsert(
     return row
 
 
+async def eligible_users(session: AsyncSession, module_key: str):
+    """User active + còn hạn + đã bật module → trả list (User, UserSettings)."""
+    from app.core.timeutils import now_utc
+    from app.models.user import User, UserSettings
+
+    now = now_utc()
+    stmt = (
+        select(User, UserSettings)
+        .join(SubscriptionModule, SubscriptionModule.user_id == User.id)
+        .join(UserSettings, UserSettings.user_id == User.id)
+        .where(
+            SubscriptionModule.module_key == module_key,
+            SubscriptionModule.is_enabled.is_(True),
+            User.status == "active",
+            (User.expires_at.is_(None)) | (User.expires_at > now),
+        )
+    )
+    res = await session.execute(stmt)
+    return list(res.all())
+
+
 async def count_enabled_by_module(session: AsyncSession) -> dict[str, int]:
     from sqlalchemy import func
 

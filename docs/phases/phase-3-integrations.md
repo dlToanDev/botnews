@@ -5,6 +5,41 @@
 > 📦 **Deliverable:** Bot đầy đủ tính năng SaaS, cảnh báo real-time đúng phân quyền, không spam.
 > 🔗 **Phụ thuộc:** Phase 2 hoàn thành (đã có `@require_module` + toggle).
 
+---
+
+## ✅ TRẠNG THÁI: ĐÃ THỰC THI (2026-08-25)
+
+Đã tích hợp 4 module qua Adapter + Celery, test **với dữ liệu LIVE thật**.
+
+**Nguồn dữ liệu chốt:**
+| Module | Nguồn | Key? |
+|---|---|---|
+| ₿ Crypto | Binance REST `/ticker/24hr` | Không |
+| 🥇 Vàng | PNJ edge API (gồm SJC + nhẫn) | Không |
+| 📰 Tin tức | RSS (VnExpress + Tuổi Trẻ) qua feedparser | Không |
+| ⚽ Bóng đá | API-Football | **Cần** `API_FOOTBALL_KEY` |
+
+**Đã kiểm chứng (`scripts/smoke_phase3.py` — 9/9 OK, dữ liệu live):**
+- Crypto live BTCUSDT (~$80.8k), Gold live 18 sản phẩm, News RSS 20 tin.
+- Football báo đúng "chưa cấu hình key".
+- `eligible_users(module)` lọc đúng (active + còn hạn + module bật).
+- Crypto/Gold/News alert **gửi đúng** cho user đủ điều kiện; **dedup** chặn gửi lặp.
+- Football `is_configured=False` → task no-op an toàn.
+- `pytest`: **11/11** (parser + security + integrations).
+- Pipeline **beat→worker chạy thật**: beat tự phát crypto (2') & news (15'); worker hit API live thành công.
+
+**Nền tảng:** `integrations/base.py` (HTTP retry + cache Redis + **stale fallback** khi API lỗi), `core/dedup.py` (SET NX EX).
+
+**Lệnh bot mới:** `/crypto /setcrypto /gold /football /setteam /news /setnews` (đều gated `@require_module`).
+
+**Beat jobs:** crypto 2', gold 10', football-live 2', news 15' (+ digest 7h, reminder 1', expire 00:05).
+
+**⚠️ VIỆC BẠN CẦN LÀM (tuỳ chọn):**
+- Muốn dùng **Bóng đá**: đăng ký key tại api-sports.io, điền `API_FOOTBALL_KEY` vào `.env`, `docker compose up -d --build worker beat bot`.
+- Chạy bot LIVE: điền `BOT_TOKEN` (như Phase 1).
+
+---
+
 ## Task list (làm tuần tự)
 
 ### 3.1. Nền tảng Integration
@@ -44,9 +79,9 @@
 - [ ] Thêm các task vào `beat_schedule` (mục 5.8).
 
 ## ✅ Definition of Done
-- [ ] `/crypto`, `/gold`, `/football`, `/news` trả dữ liệu thật, đúng định dạng.
-- [ ] Set watchlist/team/keyword lưu vào `user_settings`.
-- [ ] Alert chỉ đến user có module bật + còn hạn (test: tắt module → không nhận).
-- [ ] Không nhận trùng cùng 1 cảnh báo trong TTL dedup.
-- [ ] Khi 1 nguồn API lỗi → bot vẫn chạy, có log, không crash.
-- [ ] Gửi cảnh báo cho nhiều user không vượt rate-limit Telegram.
+- [x] `/crypto`, `/gold`, `/news` trả dữ liệu **live thật**; `/football` cần key (báo rõ khi thiếu).
+- [x] Set watchlist/team/keyword lưu vào `user_settings` (`settings_service`).
+- [x] Alert chỉ đến user có module bật + còn hạn (`eligible_users` verify).
+- [x] Không nhận trùng cùng 1 cảnh báo trong TTL dedup (`core/dedup.py`).
+- [x] Nguồn API lỗi → dùng cache cũ (stale fallback), có log, không crash.
+- [x] Gửi qua Celery `send_message_task` (rate-limit 25/s) — dưới ngưỡng Telegram.

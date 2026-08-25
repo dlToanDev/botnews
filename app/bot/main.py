@@ -36,10 +36,13 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("delete", schedule.delete))
 
     # Module SaaS (gated bằng @require_module)
-    app.add_handler(CommandHandler("crypto", features.crypto))
-    app.add_handler(CommandHandler("gold", features.gold))
-    app.add_handler(CommandHandler("football", features.football))
-    app.add_handler(CommandHandler("news", features.news))
+    app.add_handler(CommandHandler("crypto", features.crypto_cmd))
+    app.add_handler(CommandHandler("setcrypto", features.setcrypto_cmd))
+    app.add_handler(CommandHandler("gold", features.gold_cmd))
+    app.add_handler(CommandHandler("football", features.football_cmd))
+    app.add_handler(CommandHandler("setteam", features.setteam_cmd))
+    app.add_handler(CommandHandler("news", features.news_cmd))
+    app.add_handler(CommandHandler("setnews", features.setnews_cmd))
 
     # Nút menu (Reply Keyboard)
     app.add_handler(
