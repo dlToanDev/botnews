@@ -14,8 +14,10 @@ async def add_schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not raw:
         await update.message.reply_text(
             "✍️ Cú pháp:\n"
-            "`/addschedule 08:00 Đi làm`\n"
-            "`/addschedule 26/08 14:30 Họp team`",
+            "`/addschedule 08:00 Đi làm`  (mặc định hôm nay)\n"
+            "`/addschedule 26/08 14:30 Họp team`\n"
+            "`/addschedule 30/08/2026 08:00 Thức dậy`\n\n"
+            "Hoặc dùng lịch tương tác: /lich",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -74,13 +76,21 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Xử lý nút bấm trên Reply Keyboard."""
     text = update.message.text
+    if text == "🧭 Menu":
+        from app.bot.handlers.menu import build_main_menu
+        await update.message.reply_text(
+            "🧭 *Menu chính* — chọn mục:", parse_mode=ParseMode.MARKDOWN, reply_markup=build_main_menu()
+        )
+        return
     if text == "📅 Lịch hôm nay":
         await today(update, context)
     elif text == "📋 Tất cả lịch":
         await mylist(update, context)
     elif text == "➕ Thêm lịch":
         await update.message.reply_text(
-            "✍️ Gửi: `/addschedule 08:00 Việc cần làm`", parse_mode=ParseMode.MARKDOWN
+            "✍️ Gõ nhanh: `/addschedule 08:00 Việc cần làm`\n"
+            "Hoặc chọn trực quan bằng lịch: /lich",
+            parse_mode=ParseMode.MARKDOWN,
         )
     elif text == "ℹ️ Trợ giúp":
         from app.bot.handlers.start import help_command

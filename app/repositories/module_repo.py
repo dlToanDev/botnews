@@ -57,6 +57,24 @@ async def eligible_users(session: AsyncSession, module_key: str):
     return list(res.all())
 
 
+async def enabled_map_for_users(
+    session: AsyncSession, user_ids: list[int]
+) -> dict[int, set[str]]:
+    """Trả {user_id: {module_key đang bật}} cho nhiều user trong 1 query (tránh N+1)."""
+    if not user_ids:
+        return {}
+    res = await session.execute(
+        select(SubscriptionModule.user_id, SubscriptionModule.module_key).where(
+            SubscriptionModule.user_id.in_(user_ids),
+            SubscriptionModule.is_enabled.is_(True),
+        )
+    )
+    out: dict[int, set[str]] = {uid: set() for uid in user_ids}
+    for uid, key in res.all():
+        out.setdefault(uid, set()).add(key)
+    return out
+
+
 async def count_enabled_by_module(session: AsyncSession) -> dict[str, int]:
     from sqlalchemy import func
 

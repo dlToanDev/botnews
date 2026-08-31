@@ -1,53 +1,227 @@
 {% extends "base.html" %}
-{% block title %}User {{ user.telegram_id }} — BotNews Admin{% endblock %}
-{% block heading %}👤 {{ user.full_name or user.telegram_id }}{% endblock %}
+{% import "_macros.html" as ui %}
+{% block title %}{{ user.full_name or user.telegram_id }} — BotNews Admin{% endblock %}
+{% block heading %}Chi tiết người dùng{% endblock %}
+{% block topbar_actions %}
+<a href="/users" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">← Danh sách</a>
+{% endblock %}
 {% block content %}
-<a href="/users" class="text-blue-600 text-sm hover:underline">← Về danh sách</a>
 
-<div class="grid grid-cols-2 gap-6 mt-4">
-    <!-- Thông tin & trạng thái -->
-    <div class="bg-white rounded-xl shadow p-5 space-y-4">
-        <h2 class="font-semibold">Thông tin</h2>
-        <div class="text-sm space-y-1">
-            <div>🆔 Telegram ID: <span class="font-mono">{{ user.telegram_id }}</span></div>
-            <div>👤 Username: {{ ("@" ~ user.username) if user.username else "—" }}</div>
-            <div>📦 Gói: <b>{{ user.plan }}</b></div>
-            <div>⏳ Hết hạn: <b>{{ user.expires_at | localtime("%H:%M %d/%m/%Y") }}</b></div>
-            <div>🔖 Trạng thái hiện tại:
-                {% if user.status == "active" %}<span class="text-green-600 font-medium">active</span>
-                {% elif user.status == "expired" %}<span class="text-amber-600 font-medium">expired</span>
-                {% else %}<span class="text-red-600 font-medium">{{ user.status }}</span>{% endif %}
+<!-- Header card -->
+<div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-6 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-2xl font-bold">
+            {{ (user.full_name or user.username or "?")[0] | upper }}
+        </span>
+        <div class="flex-1 min-w-0">
+            <div class="text-xl font-bold text-slate-900">{{ user.full_name or "Chưa có tên" }}</div>
+            <div class="text-sm text-slate-500">
+                {{ ("@" ~ user.username) if user.username else "—" }}
+                <span class="font-mono text-slate-400">· ID {{ user.telegram_id }}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+                {{ ui.status_badge(user.status) }}
+                {{ ui.plan_badge(user.plan) }}
             </div>
         </div>
+        <div class="sm:text-right">
+            <div class="text-xs text-slate-400 uppercase tracking-wide">Hết hạn</div>
+            <div class="text-base font-semibold text-slate-800">{{ user.expires_at | localtime("%H:%M %d/%m/%Y") }}</div>
+            <div class="text-xs text-slate-400 mt-1">Dịch vụ bật: <b class="text-slate-700">{{ enabled_count }}/{{ total_modules }}</b></div>
+        </div>
+    </div>
+</div>
 
-        <form method="post" action="/users/{{ user.id }}/status" class="flex gap-2 items-center pt-2 border-t">
-            <label class="text-sm">Đổi trạng thái:</label>
-            <select name="status" class="border rounded px-2 py-1 text-sm">
-                {% for s in statuses %}
-                <option value="{{ s }}" {% if s == user.status %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-            </select>
-            <button class="bg-slate-700 text-white text-sm px-3 py-1 rounded">Lưu</button>
-        </form>
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <!-- Cột trái: quản lý gói cước -->
+    <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 space-y-5">
+            <h2 class="font-semibold text-slate-800">⚙️ Quản lý tài khoản</h2>
 
-        <div class="flex gap-2 pt-2 border-t">
-            <form method="post" action="/users/{{ user.id }}/extend">
-                <input type="hidden" name="days" value="30">
-                <button class="bg-blue-600 text-white text-sm px-3 py-1 rounded">+30 ngày</button>
+            <form method="post" action="/users/{{ user.id }}/status" class="space-y-1.5">
+                <label class="text-xs font-medium text-slate-500">Trạng thái</label>
+                <div class="flex gap-2">
+                    <select name="status" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400">
+                        {% for s in statuses %}<option value="{{ s }}" {% if s == user.status %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                    </select>
+                    <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu</button>
+                </div>
             </form>
-            <form method="post" action="/users/{{ user.id }}/extend">
-                <input type="hidden" name="days" value="365">
-                <button class="bg-indigo-600 text-white text-sm px-3 py-1 rounded">+365 ngày</button>
+
+            <form method="post" action="/users/{{ user.id }}/plan" class="space-y-1.5">
+                <label class="text-xs font-medium text-slate-500">Gói (plan)</label>
+                <div class="flex gap-2">
+                    <select name="plan" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400">
+                        {% for p in plans %}<option value="{{ p }}" {% if p == user.plan %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                    </select>
+                    <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu</button>
+                </div>
+            </form>
+
+            <div class="space-y-2 pt-4 border-t border-slate-100">
+                <label class="text-xs font-medium text-slate-500">Gia hạn</label>
+                <div class="flex flex-wrap gap-2">
+                    <form method="post" action="/users/{{ user.id }}/extend">
+                        <input type="hidden" name="days" value="30">
+                        <button class="rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100">+30 ngày</button>
+                    </form>
+                    <form method="post" action="/users/{{ user.id }}/extend">
+                        <input type="hidden" name="days" value="365">
+                        <button class="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100">+365 ngày</button>
+                    </form>
+                    <form method="post" action="/users/{{ user.id }}/extend" class="flex gap-2">
+                        <input type="number" name="days" min="1" max="3650" placeholder="ngày"
+                               class="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm focus:ring-2 focus:ring-blue-500/40" required>
+                        <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Gia hạn</button>
+                    </form>
+                </div>
+            </div>
+
+            <form method="post" action="/users/{{ user.id }}/cancel" class="pt-4 border-t border-slate-100"
+                  onsubmit="return confirm('Hủy gói của người dùng này? Sẽ hết hạn ngay và tắt toàn bộ dịch vụ.');">
+                <button class="w-full rounded-lg bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100">
+                    🚫 Hủy gói (hết hạn + tắt hết dịch vụ)
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- Feature toggle -->
-    <div class="bg-white rounded-xl shadow p-5 space-y-3">
-        <h2 class="font-semibold">🔌 Phân quyền module (bấm để bật/tắt)</h2>
-        {% for mod in modules %}
-            {% include "_module_row.html" %}
-        {% endfor %}
+    <!-- Cột phải: dịch vụ -->
+    <div class="lg:col-span-3 space-y-6">
+        <!-- Gói dịch vụ định nghĩa sẵn -->
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="font-semibold text-slate-800">📦 Áp gói dịch vụ</h2>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Bấm 1 gói để bật cả bó dịch vụ của gói đó (không tắt dịch vụ ngoài gói). Vẫn tinh chỉnh từng cái bên dưới.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for pkg in packages %}
+                <form method="post" action="/users/{{ user.id }}/packages/{{ pkg.key }}/apply"
+                      class="group rounded-xl border border-slate-200 p-3 hover:border-blue-400 hover:bg-blue-50/40 transition">
+                    <button class="w-full text-left">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-slate-800">{{ pkg.label }}</span>
+                            <span class="text-blue-600 opacity-0 group-hover:opacity-100 transition text-sm font-medium">Áp dụng →</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            {% for mk in pkg.modules %}
+                            <span class="text-[11px] rounded-full bg-slate-100 text-slate-600 px-2 py-0.5">{{ module_labels[mk] if module_labels else mk }}</span>
+                            {% endfor %}
+                        </div>
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Toggle từng dịch vụ -->
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-slate-800">🔌 Phân quyền từng dịch vụ</h2>
+                <span class="text-xs text-slate-400">Bấm để bật/tắt từng cái</span>
+            </div>
+            <div class="space-y-2">
+                {% for mod in modules %}
+                    {% include "_module_row.html" %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Cài đặt Tin tức (đẩy tự động theo loại) -->
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="font-semibold text-slate-800">📰 Cài đặt Tin tức</h2>
+                <span class="text-xs text-slate-400">Đẩy tự động khi có tin mới</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Chọn loại tin muốn nhận. <b>Không chọn loại nào = nhận tất cả tin.</b> Cần bật dịch vụ “Tin tức nóng” ở trên.</p>
+            <form method="post" action="/users/{{ user.id }}/news" class="space-y-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {% for cat in news_cats_all %}
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" name="categories" value="{{ cat.key }}"
+                               {% if cat.key in news_cats_selected %}checked{% endif %}
+                               class="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40">
+                        {{ cat.label }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu danh mục tin</button>
+            </form>
+        </div>
+
+        <!-- Cài đặt Giá vàng (báo theo giờ) -->
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="font-semibold text-slate-800">🥇 Cài đặt Giá vàng</h2>
+                <span class="text-xs text-slate-400">Báo giá theo giờ</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Nhập các giờ muốn nhận (vd <code>09:00, 16:00</code>). <b>Để trống = theo cấu hình hệ thống.</b> Cần bật dịch vụ “Giá vàng”.</p>
+            <form method="post" action="/users/{{ user.id }}/gold" class="flex gap-2">
+                <input type="text" name="gold_times" value="{{ gold_times }}" placeholder="09:00, 16:00"
+                       class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-400">
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu giờ</button>
+            </form>
+        </div>
+
+        <!-- Cài đặt Crypto (báo theo giờ, theo đồng) -->
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="font-semibold text-slate-800">📈 Cài đặt Crypto</h2>
+                <span class="text-xs text-slate-400">Báo giá theo giờ</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Chọn chế độ. <b>Tùy chỉnh riêng</b> mới dùng giờ + đồng bên dưới; <b>Theo hệ thống</b> dùng cấu hình chung; <b>Tắt</b> không nhận.</p>
+            <form method="post" action="/users/{{ user.id }}/crypto" class="space-y-4">
+                <div class="flex flex-wrap gap-3 text-sm text-slate-700">
+                    {% for val, lbl in [("system","Theo hệ thống"), ("custom","Tùy chỉnh riêng"), ("off","Tắt")] %}
+                    <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" name="mode" value="{{ val }}" {% if crypto_mode == val %}checked{% endif %}
+                               class="text-blue-600 focus:ring-blue-500/40"> {{ lbl }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Giờ gửi (khi Tùy chỉnh riêng)</label>
+                    <input type="text" name="crypto_times" value="{{ crypto_times }}" placeholder="08:00, 20:00"
+                           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Đồng (không tick = tất cả)</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        {% for sym in crypto_all_coins %}
+                        <label class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" name="coins" value="{{ sym }}"
+                                   {% if sym in crypto_coins_selected %}checked{% endif %}
+                                   class="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40">
+                            {{ sym }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu cấu hình Crypto</button>
+            </form>
+        </div>
+
+        <!-- Cài đặt Bóng đá -->
+        <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="font-semibold text-slate-800">⚽ Cài đặt Bóng đá</h2>
+                <span class="text-xs text-slate-400">Báo kết quả theo giờ</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Giờ để trống = theo hệ thống. <b>Đội yêu thích</b> (cách nhau dấu phẩy) = chỉ báo trận có đội đó; để trống = tất cả trận của giải hệ thống. Cần bật dịch vụ “Bóng đá”.</p>
+            <form method="post" action="/users/{{ user.id }}/football" class="space-y-3">
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Giờ nhận (vd 22:00)</label>
+                    <input type="text" name="football_times" value="{{ football_times }}" placeholder="22:00"
+                           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/40">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Đội yêu thích (vd Arsenal, Real Madrid)</label>
+                    <input type="text" name="teams" value="{{ football_teams }}" placeholder="Arsenal, Real Madrid"
+                           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/40">
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu cấu hình Bóng đá</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

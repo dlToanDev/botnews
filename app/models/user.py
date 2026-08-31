@@ -48,9 +48,15 @@ class UserSettings(Base):
     daily_digest_time: Mapped[time] = mapped_column(Time, default=time(7, 0))
     reminder_minutes: Mapped[int] = mapped_column(default=30)
     crypto_watchlist: Mapped[list] = mapped_column(JSONB, default=list)
+    crypto_times: Mapped[list] = mapped_column(JSONB, default=list)  # giờ nhận báo giá crypto "HH:MM"
+    crypto_notify_mode: Mapped[str] = mapped_column(String(10), default="system")  # system|custom|off
+    crypto_coins: Mapped[list] = mapped_column(JSONB, default=list)  # đồng muốn nhận (rỗng=tất cả)
     gold_alert_pct: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    gold_times: Mapped[list] = mapped_column(JSONB, default=list)  # giờ nhận báo giá vàng "HH:MM"
     news_keywords: Mapped[list] = mapped_column(JSONB, default=list)
+    news_categories: Mapped[list] = mapped_column(JSONB, default=list)
     favorite_teams: Mapped[list] = mapped_column(JSONB, default=list)
+    football_times: Mapped[list] = mapped_column(JSONB, default=list)  # giờ nhận KQ bóng đá "HH:MM"
     language: Mapped[str] = mapped_column(String(10), default="vi")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

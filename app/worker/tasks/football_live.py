@@ -3,7 +3,6 @@ import asyncio
 
 from app.core.dedup import should_alert
 from app.core.logging import get_logger
-from app.core.timeutils import now_local
 from app.integrations import football
 from app.repositories import module_repo
 from app.worker.celery_app import celery_app
@@ -11,16 +10,13 @@ from app.worker.db import worker_session
 from app.worker.tasks.send_message import send_message_task
 
 logger = get_logger(__name__)
-LIVE_STATUSES = {"1H", "2H", "HT", "ET", "P", "LIVE"}
 DEDUP_TTL = 600  # 10' cho cùng tỉ số
 
 
 async def _run() -> int:
     if not football.is_configured():
         return 0
-    date_str = now_local().strftime("%Y-%m-%d")
-    fixtures = await football.get_fixtures(date_str)
-    live = [f for f in fixtures if f.get("status") in LIVE_STATUSES]
+    live = await football.get_live_fixtures()
     if not live:
         return 0
 
@@ -38,9 +34,10 @@ async def _run() -> int:
                 key = f"football:{user.id}:{f['home']}:{f['away']}:{f['home_goals']}-{f['away_goals']}"
                 if not await should_alert(key, DEDUP_TTL):
                     continue
+                minute = f"{f['elapsed']}'" if f.get("elapsed") else f["status"]
                 text = (
-                    f"⚽ *LIVE* ({f['status']})\n"
-                    f"{f['home']} `{f['home_goals']}-{f['away_goals']}` {f['away']}"
+                    f"⚽ *LIVE* · {minute}\n"
+                    f"*{f['home']}*  {f['home_goals']} - {f['away_goals']}  *{f['away']}*"
                 )
                 send_message_task.delay(user.telegram_id, text)
                 sent += 1

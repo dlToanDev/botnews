@@ -28,8 +28,28 @@ class Settings(BaseSettings):
     TIMEZONE: str = "Asia/Ho_Chi_Minh"
 
     # --- External APIs (dùng ở Phase 3) ---
-    API_FOOTBALL_KEY: str | None = None
+    API_FOOTBALL_KEY: str | None = None  # api-sports.io — dùng cho /live (real-time)
+    FOOTBALL_DATA_KEY: str | None = None  # football-data.org — BXH & kết quả mùa hiện tại (free)
     NEWSAPI_KEY: str | None = None
+
+    # --- Thanh toán SePay (bán gói trong bot) ---
+    # Thiếu số tài khoản hoặc mã ngân hàng → tính năng /muagoi bị tắt.
+    SEPAY_WEBHOOK_APIKEY: str | None = None
+    SEPAY_ACCOUNT_NUMBER: str | None = None
+    SEPAY_BANK_CODE: str | None = None  # mã ngân hàng SePay (vd: MBBank, Vietcombank, ACB)
+    SEPAY_ACCOUNT_NAME: str | None = None
+
+    @property
+    def payment_enabled(self) -> bool:
+        return bool(self.SEPAY_ACCOUNT_NUMBER and self.SEPAY_BANK_CODE)
+
+    # --- Trợ lý AI (Google Gemini) ---
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+
+    @property
+    def ai_enabled(self) -> bool:
+        return bool(self.GEMINI_API_KEY)
 
 
 settings = Settings()

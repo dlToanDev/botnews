@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Cấu hình hệ thống — BotNews Admin{% endblock %}
+{% block heading %}Cấu hình hệ thống{% endblock %}
+{% block content %}
+
+{% if saved %}
+<div class="mb-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700 ring-1 ring-emerald-200">✅ Đã lưu cấu hình.</div>
+{% endif %}
+{% if err %}
+<div class="mb-4 rounded-lg bg-rose-50 px-4 py-2.5 text-sm text-rose-700 ring-1 ring-rose-200">⚠️ Giờ nhập không hợp lệ. Dùng dạng <code>09:00, 16:00</code>.</div>
+{% endif %}
+
+{% set tabs = [("gold","🥇","Vàng"),("crypto","📈","Crypto"),("news","📰","Tin tức"),("football","⚽","Bóng đá"),("ai","🤖","AI")] %}
+
+<div class="flex flex-col sm:flex-row gap-6">
+    <!-- Tab dọc -->
+    <div class="sm:w-48 shrink-0 flex sm:flex-col gap-1 overflow-x-auto">
+        {% for key, icon, label in tabs %}
+        <button type="button" data-tab="{{ key }}"
+                class="tab-btn text-left whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">
+            {{ icon }} {{ label }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Panels -->
+    <div class="flex-1 min-w-0">
+        <!-- Vàng -->
+        <div data-panel="gold" class="tab-panel bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-8">
+            <h2 class="font-semibold text-slate-800 mb-1">🥇 Thông báo Giá vàng</h2>
+            <p class="text-xs text-slate-400 mb-4">Khi bật, mọi tài khoản có dịch vụ “Giá vàng” nhận bản tin vào các giờ dưới đây. Tài khoản tự đặt giờ riêng sẽ dùng giờ của họ.</p>
+            <form method="post" action="/settings/gold" class="space-y-4">
+                <label class="flex items-center gap-2.5 text-sm text-slate-700">
+                    <input type="checkbox" name="enabled" value="1" {% if gold_enabled %}checked{% endif %}
+                           class="rounded border-slate-300 text-amber-600 focus:ring-amber-500/40">
+                    Bật cho toàn hệ thống
+                </label>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Giờ gửi (cách nhau bởi dấu phẩy)</label>
+                    <input type="text" name="times" value="{{ gold_times }}" placeholder="09:00, 16:00"
+                           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/40">
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu</button>
+            </form>
+        </div>
+
+        <!-- Crypto -->
+        <div data-panel="crypto" class="tab-panel bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-8">
+            <h2 class="font-semibold text-slate-800 mb-1">📈 Thông báo Crypto</h2>
+            <p class="text-xs text-slate-400 mb-4">Bật cho mọi tài khoản có dịch vụ “Crypto”. Tài khoản có thể tùy chỉnh riêng ở trang chi tiết.</p>
+            <form method="post" action="/settings/crypto" class="space-y-4">
+                <label class="flex items-center gap-2.5 text-sm text-slate-700">
+                    <input type="checkbox" name="enabled" value="1" {% if crypto_enabled %}checked{% endif %}
+                           class="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40">
+                    Bật cho toàn hệ thống
+                </label>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Giờ gửi (cách nhau bởi dấu phẩy)</label>
+                    <input type="text" name="times" value="{{ crypto_times }}" placeholder="08:00, 20:00"
+                           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Đồng gửi (không tick = tất cả)</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        {% for sym in crypto_all_coins %}
+                        <label class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" name="coins" value="{{ sym }}" {% if sym in crypto_coins_selected %}checked{% endif %}
+                                   class="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40">
+                            {{ sym }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu</button>
+            </form>
+        </div>
+
+        <!-- Tin tức -->
+        <div data-panel="news" class="tab-panel bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-8">
+            <h2 class="font-semibold text-slate-800 mb-1">📰 Danh mục tin mặc định</h2>
+            <p class="text-xs text-slate-400 mb-4">Áp cho tài khoản <b>chưa tự chọn</b> danh mục. Không tick = nhận tất cả loại tin.</p>
+            <form method="post" action="/settings/news" class="space-y-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {% for cat in news_cats_all %}
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" name="categories" value="{{ cat.key }}" {% if cat.key in news_cats_selected %}checked{% endif %}
+                               class="rounded border-slate-300 text-blue-600 focus:ring-blue-500/40">
+                        {{ cat.label }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu</button>
+            </form>
+        </div>
+
+        <!-- Bóng đá -->
+        <div data-panel="football" class="tab-panel bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-8">
+            <h2 class="font-semibold text-slate-800 mb-1">⚽ Báo kết quả bóng đá</h2>
+            <p class="text-xs text-slate-400 mb-4">Bật cho mọi tài khoản có dịch vụ “Bóng đá”: đến giờ báo kết quả vòng gần nhất của các giải đã chọn. Tài khoản có thể đặt đội yêu thích ở trang chi tiết để chỉ nhận đội đó.</p>
+            <form method="post" action="/settings/football" class="space-y-4">
+                <label class="flex items-center gap-2.5 text-sm text-slate-700">
+                    <input type="checkbox" name="enabled" value="1" {% if football_enabled %}checked{% endif %}
+                           class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/40">
+                    Bật cho toàn hệ thống
+                </label>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Giờ gửi (cách nhau bởi dấu phẩy)</label>
+                    <input type="text" name="times" value="{{ football_times }}" placeholder="22:00"
+                           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/40">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-500">Giải (không tick = tất cả)</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {% for lg in football_all_leagues %}
+                        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" name="leagues" value="{{ lg.code }}" {% if lg.code in football_leagues_selected %}checked{% endif %}
+                                   class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/40">
+                            {{ lg.label }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Lưu</button>
+            </form>
+        </div>
+
+        <!-- AI -->
+        <div data-panel="ai" class="tab-panel bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-8">
+            <h2 class="font-semibold text-slate-800 mb-1">🤖 AI</h2>
+            <p class="text-sm text-slate-400">Chưa có cấu hình hệ thống cho mục này.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const active = "{{ tab }}";
+    const btns = document.querySelectorAll(".tab-btn");
+    const panels = document.querySelectorAll(".tab-panel");
+    function show(key) {
+        panels.forEach(p => p.classList.toggle("hidden", p.dataset.panel !== key));
+        btns.forEach(b => {
+            const on = b.dataset.tab === key;
+            b.classList.toggle("bg-slate-800", on);
+            b.classList.toggle("text-white", on);
+            b.classList.toggle("text-slate-600", !on);
+        });
+    }
+    btns.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+    show(active);
+})();
+</script>
+{% endblock %}

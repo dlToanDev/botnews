@@ -1,35 +1,127 @@
 {% extends "base.html" %}
+{% import "_macros.html" as ui %}
 {% block title %}Dashboard — BotNews Admin{% endblock %}
-{% block heading %}📊 Tổng quan{% endblock %}
+{% block heading %}Tổng quan{% endblock %}
+{% block subheading %}<p class="text-sm text-slate-500 mt-0.5">Bức tranh toàn cảnh hệ thống BotNews</p>{% endblock %}
 {% block content %}
-<div class="grid grid-cols-4 gap-4 mb-8">
-    <div class="bg-white rounded-xl shadow p-5">
-        <div class="text-slate-500 text-sm">Tổng user</div>
-        <div class="text-3xl font-bold">{{ total }}</div>
+
+{% set cards = [
+    ('Tổng người dùng', total, '👥', 'from-blue-500 to-blue-600', 'text-blue-600'),
+    ('Đang hoạt động', active, '✅', 'from-emerald-500 to-emerald-600', 'text-emerald-600'),
+    ('Hết hạn', expired, '⏳', 'from-amber-500 to-amber-600', 'text-amber-600'),
+    ('Bị khóa', banned, '🚫', 'from-rose-500 to-rose-600', 'text-rose-600'),
+] %}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+    {% for label, value, icon, grad, txt in cards %}
+    <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 flex items-center justify-between">
+        <div>
+            <div class="text-sm text-slate-500">{{ label }}</div>
+            <div class="text-3xl font-extrabold {{ txt }} mt-1">{{ value }}</div>
+        </div>
+        <span class="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br {{ grad }} text-white text-xl shadow">{{ icon }}</span>
     </div>
-    <div class="bg-white rounded-xl shadow p-5">
-        <div class="text-slate-500 text-sm">Active</div>
-        <div class="text-3xl font-bold text-green-600">{{ active }}</div>
+    {% endfor %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+    <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 lg:col-span-2">
+        <h2 class="font-semibold text-slate-800 mb-4">📈 Người dùng mới theo tháng</h2>
+        <div class="h-64"><canvas id="growthChart"></canvas></div>
     </div>
-    <div class="bg-white rounded-xl shadow p-5">
-        <div class="text-slate-500 text-sm">Expired</div>
-        <div class="text-3xl font-bold text-amber-600">{{ expired }}</div>
-    </div>
-    <div class="bg-white rounded-xl shadow p-5">
-        <div class="text-slate-500 text-sm">Banned</div>
-        <div class="text-3xl font-bold text-red-600">{{ banned }}</div>
+    <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Phân bố trạng thái</h2>
+        <div class="h-64"><canvas id="statusChart"></canvas></div>
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow p-5">
-    <h2 class="font-semibold mb-4">Số user đang bật theo module</h2>
-    <div class="grid grid-cols-5 gap-4">
-        {% for m in module_stats %}
-        <div class="border rounded-lg p-4 text-center">
-            <div class="text-sm text-slate-500">{{ m.label }}</div>
-            <div class="text-2xl font-bold">{{ m.count }}</div>
-        </div>
-        {% endfor %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+    <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 lg:col-span-2">
+        <h2 class="font-semibold text-slate-800 mb-4">🔌 Số người dùng bật theo dịch vụ</h2>
+        <div class="h-64"><canvas id="moduleChart"></canvas></div>
+    </div>
+    <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Phân bố gói (plan)</h2>
+        <div class="h-64"><canvas id="planChart"></canvas></div>
     </div>
 </div>
+
+<div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <h2 class="font-semibold text-slate-800">⏰ Sắp hết hạn trong 7 ngày</h2>
+        <span class="text-xs font-medium text-amber-700 bg-amber-50 rounded-full px-2.5 py-1">{{ expiring | length }} người dùng</span>
+    </div>
+    <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+                <th class="px-5 py-3 font-medium">Người dùng</th>
+                <th class="px-5 py-3 font-medium">Gói</th>
+                <th class="px-5 py-3 font-medium">Hết hạn</th>
+                <th class="px-5 py-3"></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for u in expiring %}
+            <tr class="border-t border-slate-100 hover:bg-slate-50/60">
+                <td class="px-5 py-3">
+                    <div class="font-medium text-slate-800">{{ u.full_name or ("@" ~ u.username) or u.telegram_id }}</div>
+                    <div class="text-xs text-slate-400 font-mono">{{ u.telegram_id }}</div>
+                </td>
+                <td class="px-5 py-3">{{ ui.plan_badge(u.plan) }}</td>
+                <td class="px-5 py-3 text-amber-700 font-medium">{{ u.expires_at | localtime("%H:%M %d/%m/%Y") }}</td>
+                <td class="px-5 py-3 text-right">
+                    <a href="/users/{{ u.id }}" class="text-blue-600 hover:text-blue-700 font-medium text-sm">Xử lý →</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="4" class="px-5 py-8 text-center text-slate-400">🎉 Không có ai sắp hết hạn.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+  const CHARTS = {{ charts | tojson }};
+  const BLUE = '#2563eb', GRID = '#f1f5f9';
+  Chart.defaults.font.family = "Inter, sans-serif";
+  Chart.defaults.color = '#64748b';
+
+  new Chart(document.getElementById('growthChart'), {
+    type: 'line',
+    data: { labels: CHARTS.growth.labels, datasets: [{
+      label: 'User mới', data: CHARTS.growth.data,
+      borderColor: BLUE, backgroundColor: 'rgba(37,99,235,0.12)',
+      fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: BLUE, borderWidth: 2,
+    }]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: GRID } }, x: { grid: { display: false } } } }
+  });
+
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels: CHARTS.status.labels, datasets: [{
+      data: CHARTS.status.data, backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'], borderWidth: 0 }]},
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } } } }
+  });
+
+  new Chart(document.getElementById('moduleChart'), {
+    type: 'bar',
+    data: { labels: CHARTS.modules.labels, datasets: [{
+      data: CHARTS.modules.data,
+      backgroundColor: ['#6366f1', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444'],
+      borderRadius: 8, maxBarThickness: 48 }]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: GRID } }, x: { grid: { display: false } } } }
+  });
+
+  new Chart(document.getElementById('planChart'), {
+    type: 'doughnut',
+    data: { labels: CHARTS.plans.labels, datasets: [{
+      data: CHARTS.plans.data, backgroundColor: ['#94a3b8', '#6366f1', '#0ea5e9', '#f59e0b'], borderWidth: 0 }]},
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } } } }
+  });
+</script>
 {% endblock %}

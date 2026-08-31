@@ -18,7 +18,8 @@ HELP_TEXT = (
     "*Module nâng cấp* (Admin kích hoạt theo gói):\n"
     "• `/crypto BTCUSDT` — giá + %24h · `/setcrypto BTCUSDT 5` — cảnh báo ≥5%\n"
     "• `/gold` — giá vàng SJC/PNJ\n"
-    "• `/football` — lịch/kết quả · `/setteam Arsenal` — theo dõi đội\n"
+    "• `/football` — lịch/kết quả hôm nay · `/live` — trận đang đá\n"
+    "• `/bxh 39` — bảng xếp hạng · `/myteam` — lịch đội theo dõi · `/setteam Arsenal`\n"
     "• `/news` — tin nóng · `/setnews bitcoin,fed` — lọc theo từ khoá"
 )
 

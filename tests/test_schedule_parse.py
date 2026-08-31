@@ -31,6 +31,18 @@ def test_date_iso():
     assert title == "Khám sức khỏe"
 
 
+def test_date_dmy_full():
+    start, title = parse_schedule_input("30/08/2027 08:00 Thức dậy")
+    assert (start.year, start.month, start.day, start.hour, start.minute) == (2027, 8, 30, 8, 0)
+    assert title == "Thức dậy"
+
+
+def test_date_dmy_not_swallowed_by_dm():
+    # DD/MM/YYYY phải khớp năm tường minh, không bị _DATE_DM cắt mất năm
+    start, _ = parse_schedule_input("01/02/2030 09:15 Việc")
+    assert start.year == 2030
+
+
 def test_invalid_raises():
     with pytest.raises(ScheduleParseError):
         parse_schedule_input("blah blah")

@@ -10,12 +10,16 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
     include=[
         "app.worker.tasks.send_message",
+        "app.worker.tasks.send_photo",
         "app.worker.tasks.daily_digest",
         "app.worker.tasks.schedule_reminder",
         "app.worker.tasks.expire_users",
         "app.worker.tasks.crypto_alert",
+        "app.worker.tasks.crypto_digest",
         "app.worker.tasks.gold_alert",
+        "app.worker.tasks.gold_digest",
         "app.worker.tasks.football_live",
+        "app.worker.tasks.football_digest",
         "app.worker.tasks.news_push",
     ],
 )
@@ -50,12 +54,24 @@ celery_app.conf.beat_schedule = {
         "task": "app.worker.tasks.gold_alert.poll_and_alert",
         "schedule": crontab(minute="*/10"),
     },
+    "gold-digest-every-minute": {
+        "task": "app.worker.tasks.gold_digest.poll_and_send",
+        "schedule": crontab(minute="*"),
+    },
+    "crypto-digest-every-minute": {
+        "task": "app.worker.tasks.crypto_digest.poll_and_send",
+        "schedule": crontab(minute="*"),
+    },
+    "football-digest-every-minute": {
+        "task": "app.worker.tasks.football_digest.poll_and_send",
+        "schedule": crontab(minute="*"),
+    },
     "football-live-2min": {
         "task": "app.worker.tasks.football_live.poll_and_alert",
         "schedule": crontab(minute="*/2"),
     },
-    "news-push-15min": {
+    "news-push-2min": {
         "task": "app.worker.tasks.news_push.poll_and_alert",
-        "schedule": crontab(minute="*/15"),
+        "schedule": crontab(minute="*/2"),
     },
 }

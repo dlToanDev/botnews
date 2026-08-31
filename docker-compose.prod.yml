@@ -1,0 +1,157 @@
+# ============================================================================
+# Production compose — Phase 4
+# 7 service: postgres, redis, bot, worker, beat, web, nginx (+ certbot).
+# Khác bản dev: KHÔNG lộ port DB/Redis/web ra host, có Nginx + SSL phía trước,
+# giới hạn tài nguyên, log rotation, postgres/redis tuning.
+#
+# Chạy:   docker compose -f docker-compose.prod.yml up -d
+# ============================================================================
+
+# --- Anchor dùng chung: log rotation cho mọi container ---
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    logging: *default-logging
+    # Tuning: shared_buffers=512MB, max_connections=50 (theo phase-4 mục 4.2).
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c max_connections=50
+      -c effective_cache_size=1536MB
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    # KHÔNG có `ports:` — chỉ truy cập được trong docker network.
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    logging: *default-logging
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+    # KHÔNG có `ports:` — chỉ nội bộ docker network.
+
+  bot:
+    build: .
+    restart: always
+    logging: *default-logging
+    command: python -m app.bot.main
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  worker:
+    build: .
+    restart: always
+    logging: *default-logging
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  beat:
+    build: .
+    restart: always
+    logging: *default-logging
+    command: celery -A app.worker.celery_app beat --loglevel=info
+    env_file: .env
+    depends_on:
+      redis: { condition: service_healthy }
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  web:
+    build: .
+    restart: always
+    logging: *default-logging
+    command: uvicorn app.web.main:app --host 0.0.0.0 --port 8000 --workers 2
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    # KHÔNG có `ports:` — Nginx là điểm vào duy nhất (network nội bộ tới web:8000).
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    logging: *default-logging
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-www:/var/www/certbot:ro
+      - certbot-conf:/etc/letsencrypt:ro
+    depends_on:
+      web: { condition: service_healthy }
+    # Nginx reload cert 6h/lần để nhận cert mới sau khi certbot renew.
+    command: >
+      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: always
+    logging: *default-logging
+    volumes:
+      - certbot-www:/var/www/certbot:rw
+      - certbot-conf:/etc/letsencrypt:rw
+    # Thử renew mỗi 12h; Let's Encrypt chỉ thực sự gia hạn khi còn <30 ngày.
+    entrypoint: >
+      /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  pgdata:
+  redisdata:
+  certbot-www:
+  certbot-conf:

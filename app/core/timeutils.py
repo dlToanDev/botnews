@@ -38,5 +38,15 @@ def local_day_bounds_utc(ref: datetime | None = None) -> tuple[datetime, datetim
     return start_local.astimezone(UTC), end_local.astimezone(UTC)
 
 
+def local_month_bounds_utc(year: int, month: int) -> tuple[datetime, datetime]:
+    """Trả (đầu tháng, đầu tháng kế) theo giờ VN của (year, month), quy đổi UTC."""
+    start_local = datetime(year, month, 1, tzinfo=LOCAL_TZ)
+    if month == 12:
+        end_local = datetime(year + 1, 1, 1, tzinfo=LOCAL_TZ)
+    else:
+        end_local = datetime(year, month + 1, 1, tzinfo=LOCAL_TZ)
+    return start_local.astimezone(UTC), end_local.astimezone(UTC)
+
+
 def fmt_local(dt: datetime, pattern: str = "%H:%M %d/%m/%Y") -> str:
     return to_local(dt).strftime(pattern)

@@ -2,7 +2,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import DEFAULT_MODULES
 from app.core.timeutils import now_utc
+from app.models.subscription import SubscriptionModule
 from app.models.user import User, UserSettings
 
 
@@ -30,6 +32,15 @@ async def create(
     )
     user.settings = UserSettings()  # tạo settings mặc định kèm theo
     session.add(user)
+    await session.flush()
+    # Bật sẵn các module nền cho tài khoản mới (vd: lịch cá nhân ai cũng có).
+    now = now_utc()
+    for key in DEFAULT_MODULES:
+        session.add(
+            SubscriptionModule(
+                user_id=user.id, module_key=key, is_enabled=True, enabled_at=now
+            )
+        )
     await session.flush()
     return user
 
@@ -65,6 +76,62 @@ async def count_by_status(session: AsyncSession) -> dict[str, int]:
 
     res = await session.execute(select(User.status, func.count()).group_by(User.status))
     return {status: cnt for status, cnt in res.all()}
+
+
+async def count_by_plan(session: AsyncSession) -> dict[str, int]:
+    from sqlalchemy import func
+
+    res = await session.execute(select(User.plan, func.count()).group_by(User.plan))
+    return {plan: cnt for plan, cnt in res.all()}
+
+
+async def count_new_by_month(session: AsyncSession, months: int = 6) -> dict[str, int]:
+    """Số user mới theo tháng (YYYY-MM), phủ đủ `months` tháng gần nhất (gồm cả 0)."""
+    from datetime import timedelta
+
+    from sqlalchemy import func
+
+    since = now_utc() - timedelta(days=31 * months)
+    bucket = func.to_char(User.created_at, "YYYY-MM")
+    res = await session.execute(
+        select(bucket, func.count())
+        .where(User.created_at >= since)
+        .group_by(bucket)
+    )
+    counts = {label: cnt for label, cnt in res.all()}
+
+    # Dựng chuỗi tháng liên tục để biểu đồ không bị hụt cột.
+    now = now_utc()
+    y, m = now.year, now.month
+    labels: list[str] = []
+    for _ in range(months):
+        labels.append(f"{y:04d}-{m:02d}")
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    labels.reverse()
+    return {label: counts.get(label, 0) for label in labels}
+
+
+async def expiring_soon(session: AsyncSession, days: int = 7) -> list[User]:
+    """User đang active sắp hết hạn trong `days` ngày tới (sớm nhất lên đầu)."""
+    from datetime import timedelta
+
+    now = now_utc()
+    until = now + timedelta(days=days)
+    stmt = (
+        select(User)
+        .where(
+            User.status == "active",
+            User.expires_at.is_not(None),
+            User.expires_at > now,
+            User.expires_at <= until,
+        )
+        .order_by(User.expires_at.asc())
+    )
+    res = await session.execute(stmt)
+    return list(res.scalars().all())
 
 
 async def expire_overdue(session: AsyncSession) -> int:

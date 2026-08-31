@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import MODULE_KEYS
+from app.core.constants import MODULE_KEYS, PACKAGES_BY_KEY
 from app.core.database import AsyncSessionLocal
 from app.core.timeutils import now_utc
 from app.models.user import User
@@ -28,6 +28,57 @@ async def set_module(session: AsyncSession, user_id: int, key: str, enabled: boo
         actor="admin",
         detail={"module": key, "enabled": enabled},
     )
+
+
+async def apply_package(session: AsyncSession, user_id: int, pkg_key: str) -> list[str]:
+    """Bật đúng bó module của một gói định nghĩa sẵn. Các module khác giữ nguyên.
+
+    Trả về danh sách module_key đã bật. Ném ValueError nếu gói không hợp lệ.
+    """
+    pkg = PACKAGES_BY_KEY.get(pkg_key)
+    if pkg is None:
+        raise ValueError(f"Gói không hợp lệ: {pkg_key}")
+    modules = [k for k in pkg["modules"] if k in MODULE_KEYS]
+    for key in modules:
+        await module_repo.upsert(session, user_id, key, True)
+    await log_repo.write(
+        session,
+        action="package_apply",
+        user_id=user_id,
+        actor="admin",
+        detail={"package": pkg_key, "modules": modules},
+    )
+    return modules
+
+
+async def set_plan_name(session: AsyncSession, user_id: int, plan: str) -> User | None:
+    """Đổi tên gói cước (free/vip). Không đụng tới hạn dùng hay module."""
+    user = await user_repo.get_by_id(session, user_id)
+    if user is None:
+        return None
+    old = user.plan
+    user.plan = plan
+    await log_repo.write(
+        session, action="plan_change", user_id=user_id, actor="admin",
+        detail={"from": old, "to": plan},
+    )
+    return user
+
+
+async def cancel_plan(session: AsyncSession, user_id: int) -> User | None:
+    """Hủy gói: hết hạn ngay + trạng thái 'expired' + tắt toàn bộ module."""
+    user = await user_repo.get_by_id(session, user_id)
+    if user is None:
+        return None
+    user.expires_at = now_utc()
+    user.status = "expired"
+    for key in MODULE_KEYS:
+        await module_repo.upsert(session, user_id, key, False)
+    await log_repo.write(
+        session, action="plan_cancel", user_id=user_id, actor="admin",
+        detail={"expires_at": user.expires_at.isoformat()},
+    )
+    return user
 
 
 async def set_status(session: AsyncSession, user_id: int, status: str) -> User | None:

@@ -6,25 +6,72 @@
     <title>{% block title %}BotNews Admin{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] } } } }
+    </script>
+    <style>
+      body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="bg-slate-100 text-slate-800 antialiased">
+{% set nav = [
+    ('/', '📊', 'Dashboard'),
+    ('/users', '👥', 'Người dùng'),
+    ('/orders', '🧾', 'Đơn hàng'),
+    ('/logs', '📜', 'Nhật ký'),
+    ('/settings', '⚙️', 'Cấu hình'),
+] %}
 <div class="flex min-h-screen">
-    <aside class="w-56 bg-slate-900 text-slate-200 flex flex-col">
-        <div class="px-5 py-4 text-lg font-bold border-b border-slate-700">🤖 BotNews</div>
-        <nav class="flex-1 px-2 py-4 space-y-1 text-sm">
-            <a href="/" class="block px-3 py-2 rounded hover:bg-slate-700">📊 Dashboard</a>
-            <a href="/users" class="block px-3 py-2 rounded hover:bg-slate-700">👥 Users</a>
-            <a href="/logs" class="block px-3 py-2 rounded hover:bg-slate-700">📜 Logs</a>
+    <aside class="w-60 shrink-0 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0">
+        <div class="px-5 py-5 flex items-center gap-2 border-b border-white/10">
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white text-lg">🤖</span>
+            <div>
+                <div class="text-white font-bold leading-tight">BotNews</div>
+                <div class="text-[11px] text-slate-400">Admin Console</div>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+            {% for path, icon, label in nav %}
+            {% set is_active = (request.url.path == path) or (path != '/' and request.url.path.startswith(path)) %}
+            <a href="{{ path }}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition
+                      {% if is_active %}bg-blue-600 text-white font-medium shadow-sm{% else %}hover:bg-white/5 hover:text-white{% endif %}">
+                <span class="text-base">{{ icon }}</span>{{ label }}
+            </a>
+            {% endfor %}
         </nav>
-        <div class="px-4 py-3 border-t border-slate-700 text-xs">
-            <div class="mb-2 text-slate-400">👤 {{ admin.username }}</div>
-            <a href="/logout" class="text-red-400 hover:underline">Đăng xuất</a>
+        <div class="px-4 py-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <span class="grid h-9 w-9 place-items-center rounded-full bg-slate-700 text-white text-sm font-semibold">
+                    {{ (admin.username[0] | upper) if admin and admin.username else 'A' }}
+                </span>
+                <div class="min-w-0 flex-1">
+                    <div class="text-sm text-white truncate">{{ admin.username if admin else '—' }}</div>
+                    <a href="/logout" class="text-xs text-rose-400 hover:text-rose-300">Đăng xuất →</a>
+                </div>
+            </div>
         </div>
     </aside>
-    <main class="flex-1 p-8">
-        <h1 class="text-2xl font-semibold mb-6">{% block heading %}{% endblock %}</h1>
-        {% block content %}{% endblock %}
-    </main>
+
+    <div class="flex-1 ml-60 flex flex-col min-w-0">
+        <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">{% block heading %}{% endblock %}</h1>
+                    {% block subheading %}{% endblock %}
+                </div>
+                <div class="flex items-center gap-3">{% block topbar_actions %}{% endblock %}</div>
+            </div>
+        </header>
+        <main class="flex-1 p-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 </div>
 </body>
 </html>

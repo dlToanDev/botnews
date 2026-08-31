@@ -3,6 +3,7 @@ from telegram import ReplyKeyboardMarkup
 
 MAIN_MENU = ReplyKeyboardMarkup(
     [
+        ["🧭 Menu"],
         ["📅 Lịch hôm nay", "📋 Tất cả lịch"],
         ["➕ Thêm lịch", "ℹ️ Trợ giúp"],
     ],

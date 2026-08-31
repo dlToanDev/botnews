@@ -46,6 +46,16 @@ async def list_between(
     return list(res.scalars().all())
 
 
+async def update(session: AsyncSession, schedule_id: int, user_id: int, **fields) -> bool:
+    """Cập nhật lịch, chỉ khi đúng chủ sở hữu."""
+    sch = await session.get(Schedule, schedule_id)
+    if sch is None or sch.user_id != user_id:
+        return False
+    for k, v in fields.items():
+        setattr(sch, k, v)
+    return True
+
+
 async def delete(session: AsyncSession, schedule_id: int, user_id: int) -> bool:
     """Soft-independent delete: chỉ xoá nếu đúng chủ sở hữu."""
     sch = await session.get(Schedule, schedule_id)
@@ -68,6 +78,24 @@ async def list_due_reminders(
         Schedule.is_notified.is_(False),
         Schedule.start_time > now,
         Schedule.start_time <= upper,
+    )
+    res = await session.execute(stmt)
+    return list(res.scalars().all())
+
+
+async def list_due_started(
+    session: AsyncSession, now: datetime, grace_minutes: int = 15
+) -> list[Schedule]:
+    """Lịch active, chưa báo-đúng-giờ, start_time trong (now - grace, now].
+
+    Cửa sổ grace: tránh bỏ sót khi worker trễ; tránh bắn dồn lịch quá khứ khi deploy.
+    """
+    lower = now - timedelta(minutes=grace_minutes)
+    stmt = select(Schedule).where(
+        Schedule.is_active.is_(True),
+        Schedule.started_notified.is_(False),
+        Schedule.start_time <= now,
+        Schedule.start_time > lower,
     )
     res = await session.execute(stmt)
     return list(res.scalars().all())

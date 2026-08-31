@@ -1,0 +1,21 @@
+{# Badge trạng thái user: chấm màu + nhãn, pill bo tròn #}
+{% macro status_badge(status) %}
+  {% set map = {
+    "active":  ("bg-emerald-50", "text-emerald-700", "bg-emerald-500", "Đang hoạt động"),
+    "expired": ("bg-amber-50",   "text-amber-700",   "bg-amber-500",   "Hết hạn"),
+    "banned":  ("bg-rose-50",    "text-rose-700",    "bg-rose-500",    "Bị khóa"),
+  } %}
+  {% set c = map.get(status, ("bg-slate-100", "text-slate-600", "bg-slate-400", status)) %}
+  <span class="inline-flex items-center gap-1.5 rounded-full {{ c[0] }} {{ c[1] }} px-2.5 py-0.5 text-xs font-medium">
+    <span class="h-1.5 w-1.5 rounded-full {{ c[2] }}"></span>{{ c[3] }}
+  </span>
+{% endmacro %}
+
+{# Badge gói (plan) — vip nổi bật, free trung tính #}
+{% macro plan_badge(plan) %}
+  {% if plan == "vip" %}
+  <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 text-indigo-700 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-indigo-200">⭐ VIP</span>
+  {% else %}
+  <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-xs font-medium">{{ plan }}</span>
+  {% endif %}
+{% endmacro %}

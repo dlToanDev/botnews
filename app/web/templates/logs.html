@@ -1,35 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Logs — BotNews Admin{% endblock %}
-{% block heading %}📜 Logs hoạt động{% endblock %}
+{% block title %}Nhật ký — BotNews Admin{% endblock %}
+{% block heading %}Nhật ký hoạt động{% endblock %}
 {% block content %}
-<form method="get" action="/logs" class="mb-4 flex gap-2">
+<form method="get" action="/logs" class="mb-5 relative max-w-md">
+    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
     <input name="action" value="{{ action }}" placeholder="Lọc theo action (vd: plan_extend)"
-           class="border rounded px-3 py-2 w-80">
-    <button class="bg-blue-600 text-white px-4 rounded">Lọc</button>
+           class="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-sm shadow-sm
+                  focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400">
 </form>
 
-<div class="bg-white rounded-xl shadow overflow-hidden">
+<div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden">
     <table class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-500 text-left">
             <tr>
-                <th class="px-4 py-3">Thời gian</th>
-                <th class="px-4 py-3">Actor</th>
-                <th class="px-4 py-3">Action</th>
-                <th class="px-4 py-3">User</th>
-                <th class="px-4 py-3">Chi tiết</th>
+                <th class="px-5 py-3 font-medium">Thời gian</th>
+                <th class="px-5 py-3 font-medium">Actor</th>
+                <th class="px-5 py-3 font-medium">Action</th>
+                <th class="px-5 py-3 font-medium">User</th>
+                <th class="px-5 py-3 font-medium">Chi tiết</th>
             </tr>
         </thead>
         <tbody>
         {% for l in logs %}
-            <tr class="border-t">
-                <td class="px-4 py-2 whitespace-nowrap">{{ l.created_at | localtime }}</td>
-                <td class="px-4 py-2">{{ l.actor }}</td>
-                <td class="px-4 py-2 font-mono">{{ l.action }}</td>
-                <td class="px-4 py-2">{{ l.user_id or "—" }}</td>
-                <td class="px-4 py-2 font-mono text-xs text-slate-500">{{ l.detail }}</td>
+            <tr class="border-t border-slate-100 hover:bg-slate-50/60">
+                <td class="px-5 py-2.5 whitespace-nowrap text-slate-600">{{ l.created_at | localtime }}</td>
+                <td class="px-5 py-2.5">
+                    <span class="rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-xs font-medium">{{ l.actor }}</span>
+                </td>
+                <td class="px-5 py-2.5 font-mono text-xs text-blue-700">{{ l.action }}</td>
+                <td class="px-5 py-2.5">{{ l.user_id or "—" }}</td>
+                <td class="px-5 py-2.5 font-mono text-xs text-slate-500 max-w-md truncate">{{ l.detail }}</td>
             </tr>
         {% else %}
-            <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400">Chưa có log.</td></tr>
+            <tr><td colspan="5" class="px-5 py-8 text-center text-slate-400">Chưa có nhật ký.</td></tr>
         {% endfor %}
         </tbody>
     </table>

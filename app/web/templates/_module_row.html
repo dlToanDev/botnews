@@ -1,11 +1,14 @@
-<div id="module-{{ mod.key }}" class="flex items-center justify-between border rounded-lg px-4 py-3">
-    <span class="text-sm">{{ mod.label }}</span>
+<div id="module-{{ mod.key }}"
+     class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+    <span class="text-sm font-medium text-slate-700">{{ mod.label }}</span>
     <button
         hx-post="/users/{{ user_id }}/modules/{{ mod.key }}/toggle"
         hx-target="#module-{{ mod.key }}"
         hx-swap="outerHTML"
-        class="px-3 py-1 rounded text-sm font-medium
-               {% if mod.enabled %}bg-green-100 text-green-700{% else %}bg-slate-200 text-slate-600{% endif %}">
-        {% if mod.enabled %}✅ Đang bật{% else %}⭕ Đang tắt{% endif %}
+        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition
+               {% if mod.enabled %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
+               {% else %}bg-slate-100 text-slate-500 hover:bg-slate-200{% endif %}">
+        <span class="h-1.5 w-1.5 rounded-full {% if mod.enabled %}bg-emerald-500{% else %}bg-slate-400{% endif %}"></span>
+        {% if mod.enabled %}Đang bật{% else %}Đang tắt{% endif %}
     </button>
 </div>

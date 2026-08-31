@@ -8,6 +8,7 @@ from app.core.database import AsyncSessionLocal
 from app.core.timeutils import (
     LOCAL_TZ,
     local_day_bounds_utc,
+    local_month_bounds_utc,
     now_local,
     to_local,
     to_utc,
@@ -21,6 +22,7 @@ class ScheduleParseError(ValueError):
 
 
 _TIME_ONLY = re.compile(r"^(\d{1,2}):(\d{2})\s+(.+)$", re.DOTALL)
+_DATE_DMY = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2})\s+(.+)$", re.DOTALL)
 _DATE_DM = re.compile(r"^(\d{1,2})/(\d{1,2})\s+(\d{1,2}):(\d{2})\s+(.+)$", re.DOTALL)
 _DATE_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s+(.+)$", re.DOTALL)
 
@@ -31,13 +33,17 @@ def parse_schedule_input(text: str) -> tuple[datetime, str]:
     Hỗ trợ:
       - "08:00 Đi làm"                → hôm nay (hoặc mai nếu đã qua giờ)
       - "26/08 08:00 Họp team"        → ngày/tháng năm hiện tại
-      - "2026-08-26 08:00 Họp team"   → ngày đầy đủ
+      - "30/08/2026 08:00 Thức dậy"   → ngày/tháng/năm đầy đủ
+      - "2026-08-26 08:00 Họp team"   → ngày đầy đủ (ISO)
     """
     text = text.strip()
     now = now_local()
 
     if m := _DATE_ISO.match(text):
         y, mo, d, hh, mm, title = m.groups()
+        start = datetime(int(y), int(mo), int(d), int(hh), int(mm), tzinfo=LOCAL_TZ)
+    elif m := _DATE_DMY.match(text):
+        d, mo, y, hh, mm, title = m.groups()
         start = datetime(int(y), int(mo), int(d), int(hh), int(mm), tzinfo=LOCAL_TZ)
     elif m := _DATE_DM.match(text):
         d, mo, hh, mm, title = m.groups()
@@ -111,6 +117,63 @@ async def list_all(telegram_id: int) -> list[Schedule]:
         if user is None:
             return []
         return await schedule_repo.list_by_user(session, user.id, only_active=True)
+
+
+async def day_events(telegram_id: int, year: int, month: int, day: int) -> list[Schedule]:
+    """Lịch của 1 ngày (giờ VN)."""
+    ref = datetime(year, month, day, 12, 0, tzinfo=LOCAL_TZ)
+    async with AsyncSessionLocal() as session:
+        user = await user_repo.get_by_telegram_id(session, telegram_id)
+        if user is None:
+            return []
+        start, end = local_day_bounds_utc(ref)
+        return await schedule_repo.list_between(session, user.id, start, end)
+
+
+async def month_event_days(telegram_id: int, year: int, month: int) -> set[int]:
+    """Tập ngày (theo giờ VN) trong tháng có ít nhất 1 lịch."""
+    async with AsyncSessionLocal() as session:
+        user = await user_repo.get_by_telegram_id(session, telegram_id)
+        if user is None:
+            return set()
+        start, end = local_month_bounds_utc(year, month)
+        rows = await schedule_repo.list_between(session, user.id, start, end)
+        return {to_local(s.start_time).day for s in rows}
+
+
+async def update_time(telegram_id: int, schedule_id: int, new_start_local: datetime) -> bool:
+    """Đổi giờ 1 lịch. Đặt lại is_notified=False để nhắc đúng giờ mới."""
+    async with AsyncSessionLocal() as session:
+        user = await user_repo.get_by_telegram_id(session, telegram_id)
+        if user is None:
+            return False
+        ok = await schedule_repo.update(
+            session, schedule_id, user.id,
+            start_time=to_utc(new_start_local), is_notified=False, started_notified=False,
+        )
+        if ok:
+            await log_repo.write(
+                session, action="schedule_edit_time", user_id=user.id, actor="user",
+                detail={"schedule_id": schedule_id},
+            )
+        await session.commit()
+        return ok
+
+
+async def update_title(telegram_id: int, schedule_id: int, title: str) -> bool:
+    """Đổi tiêu đề 1 lịch."""
+    async with AsyncSessionLocal() as session:
+        user = await user_repo.get_by_telegram_id(session, telegram_id)
+        if user is None:
+            return False
+        ok = await schedule_repo.update(session, schedule_id, user.id, title=title)
+        if ok:
+            await log_repo.write(
+                session, action="schedule_edit_title", user_id=user.id, actor="user",
+                detail={"schedule_id": schedule_id, "title": title},
+            )
+        await session.commit()
+        return ok
 
 
 async def delete_schedule(telegram_id: int, schedule_id: int) -> bool:

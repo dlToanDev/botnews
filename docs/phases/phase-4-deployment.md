@@ -6,6 +6,22 @@
 > 🔗 **Phụ thuộc:** Phase 1–3 hoàn thành.
 > 🤖 **Bot mode:** Long Polling (đã chốt) — không cần route webhook, đơn giản hơn.
 
+> ✅ **Trạng thái:** Toàn bộ **artifact deploy đã có sẵn trong repo** — chỉ còn thao tác
+> chạy trên VPS thật. Xem runbook chi tiết: [`docs/DEPLOYMENT.md`](../DEPLOYMENT.md).
+>
+> | Artifact | File |
+> |---|---|
+> | Compose production (7 service + certbot) | `docker-compose.prod.yml` |
+> | Nginx reverse proxy + SSL + redirect + allowlist | `nginx/nginx.conf`, `nginx/conf.d/admin.conf` |
+> | Bootstrap SSL Let's Encrypt | `scripts/init_letsencrypt.sh` |
+> | Backup DB (giữ 7 bản, offsite tùy chọn) | `scripts/backup_db.sh` |
+> | Restore DB (test restore) | `scripts/restore_db.sh` |
+> | Healthcheck endpoint | `GET /healthz` (app/web/main.py) |
+> | Mẫu env production | `.env.prod.example` |
+>
+> Các ô `[ ]` bên dưới là **thao tác vận hành trên VPS** (cài Docker, DNS, ufw, chạy compose…)
+> — thực hiện theo `docs/DEPLOYMENT.md`.
+
 ## Task list (làm tuần tự)
 
 ### 4.1. Chuẩn bị VPS
